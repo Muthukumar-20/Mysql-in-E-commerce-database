@@ -1,0 +1,119 @@
+CREATE TABLE `customers` (
+  `customerId` int NOT NULL AUTO_INCREMENT,
+  `customer_name` varchar(100) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `address` varchar(250) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`customerId`),
+  UNIQUE KEY `email` (`email`)
+)
+
+CREATE TABLE `orders` (
+  `Id` int NOT NULL AUTO_INCREMENT,
+  `customerId` int DEFAULT NULL,
+  `order_date` varchar(100) DEFAULT NULL,
+  `total_amount` double DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `productid` int DEFAULT NULL,
+  `product_name` varchar(250) DEFAULT NULL,
+  PRIMARY KEY (`Id`),
+  KEY `customerId` (`customerId`),
+  KEY `orders_ibfk_2` (`productid`),
+  CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`customerId`) REFERENCES `customers` (`customerId`),
+  CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`productid`) REFERENCES `products` (`productId`)
+) 
+
+
+CREATE TABLE `products` (
+  `productId` int NOT NULL AUTO_INCREMENT,
+  `product_name` varchar(100) DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `product_description` varchar(100) DEFAULT NULL,
+  `price` double DEFAULT NULL,
+  `quantity` int DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`productId`)
+)
+
+
+//Retrieve all customers who have placed an order in the last 30 days.
+select * from customers 
+where customerId in 
+(
+select customerId from orders
+  where date(order_date) between date_sub( curdate(),interval 30 day)  and   curdate());
+
+
+//Get the total amount of all orders placed by each customer.
+select c.customer_name,sum(o.total_amount) as amount_ordered from customers c
+ join orders o
+  on c.customerId = o.customerId
+  group by c.customer_name
+  ;
+SET sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
+
+
+//Update the price of Product C to 45.00.
+update products 
+ set price = 45
+ where productid = 1;
+
+
+//Add a new column discount to the products table.
+CREATE TABLE `products` (
+  `productId` int NOT NULL AUTO_INCREMENT,
+  `product_name` varchar(100) DEFAULT NULL,
+  `category` varchar(100) DEFAULT NULL,
+  `product_description` varchar(100) DEFAULT NULL,
+  `price` double DEFAULT NULL,
+  `quantity` int DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  `discount` decimal(4,2) DEFAULT NULL,
+  PRIMARY KEY (`productId`)
+)
+
+
+//Retrieve the top 3 products with the highest price.
+select price
+from products
+order by price desc
+limit 3;
+
+//Get the names of customers who have ordered Product A (Wireless Mouse).
+select *
+from customers
+where customerId in (select  customerId
+                         from orders
+                        where product_name in("Wireless Mouse")
+					  ); 
+
+
+//Join the orders and customers tables to retrieve the customer's name and order date for each order. 
+select customer_name , order_date from customers
+ join orders 
+    on customers.customerid = orders.customerId
+    ; 
+
+
+    //Retrieve the orders with a total amount greater than 150.00.
+   select *
+    from orders
+    where total_amount >150.00;
+
+
+//Normalize the database by creating a separate table for order items and updating the orders table to reference the order_items table.
+ELECT o.order_id, o.order_date, oi.product_id, oi.quantity, oi.price
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_id = 1;
+
+
+//Retrieve the average total of all orders
+SELECT AVG(order_total) AS avg_order_total
+FROM (
+    SELECT order_id, SUM(quantity * price) AS order_total
+    FROM order_items
+    GROUP BY order_id
+)
